@@ -1,0 +1,18 @@
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"${CLAUDE_PROJECT_DIR:-.}/.claude/hooks/tdd-guard.sh\"",
+            "shell": "bash",
+            "timeout": 10,
+            "statusMessage": "TDD Guard: 테스트 파일 확인 중..."
+          }
+        ]
+      }
+    ]
+  }
+}

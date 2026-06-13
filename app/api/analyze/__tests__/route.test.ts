@@ -14,13 +14,15 @@ describe("POST /api/analyze (입력 검증)", () => {
     expect(res.status).toBe(400);
   });
 
-  it("CSV가 아닌 파일은 400", async () => {
+  it("지원하지 않는 확장자(.pdf 등)는 확장자 거부로 400", async () => {
     const fd = new FormData();
-    fd.append("file", new File(["hello"], "notes.txt", { type: "text/plain" }));
+    fd.append("file", new File(["hello"], "report.pdf", { type: "application/pdf" }));
 
     const res = await POST(postReq(fd));
 
     expect(res.status).toBe(400);
+    const data = await res.json();
+    expect(data.error).toContain("CSV"); // 0-메시지 경로가 아닌 확장자 거부 경로임을 고정
   });
 
   it("유효한 메시지가 없는 CSV는 400", async () => {

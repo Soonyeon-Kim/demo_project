@@ -89,4 +89,19 @@ describe("parseKakao", () => {
     expect(messages).toHaveLength(1);
     expect(messages[0].text).toBe("사진");
   });
+
+  it("여러 날짜 구분선에 걸친 전사를 각 날짜로 분리한다", () => {
+    const txt = [
+      `${SEP} 2026년 5월 24일 일요일 ${SEP}`,
+      "[차라] [오후 11:50] 첫째 날 메시지",
+      `${SEP} 2026년 5월 25일 월요일 ${SEP}`,
+      "[부경대] [오전 9:10] 둘째 날 메시지",
+    ].join("\n");
+
+    const { messages } = parseKakao(txt);
+
+    expect(messages).toHaveLength(2);
+    expect(messages[0].rawDate.startsWith("2026-05-24")).toBe(true);
+    expect(messages[1].rawDate.startsWith("2026-05-25")).toBe(true);
+  });
 });
