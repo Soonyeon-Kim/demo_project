@@ -25,6 +25,10 @@ Input is capped at `MAX_MESSAGES` (500, most recent) and `MAX_CHARS` (12000); ex
 
 Every failure path returns `analysis: null` with a Korean `analysisError` string while **still returning `stats`**, so the app is fully usable without a key. The paths: missing `OPENAI_API_KEY`, empty transcript, `finish_reason === "length"`, model `refusal`, empty content, or any thrown SDK error. Add new failure modes the same way — never throw out of `analyzeChat`.
 
+### Mock mode (`ANALYZE_MOCK=1`)
+
+When `process.env.ANALYZE_MOCK === "1"`, `analyzeChat` returns a deterministic `buildMockAnalysis(messages)` and skips OpenAI entirely. This is a **success early-return, not a failure path** — it runs **before the `OPENAI_API_KEY` check**, so the flag wins even when a key is present, and `error` is left unset. The mock derives summary/topics/actionItems from the input (message count, participants, top sender) and prefixes the `summary` with a `⚠️ 모의(mock)` marker so a mocked response is never mistaken for a real one. Use it to exercise the full `AnalyzeResult` (including the analysis section + UI) with no key, network, or cost. Default (flag unset) behavior is unchanged.
+
 ## Testing the route without network
 
 To exercise the route/analyze code without hitting OpenAI, set `process.env.OPENAI_API_KEY = ""` and restore it in a `finally` — this drives the no-key degradation path so only deterministic `stats` are asserted. See `app/api/analyze/__tests__/route.test.ts`.

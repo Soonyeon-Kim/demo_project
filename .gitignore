@@ -34,6 +34,12 @@ yarn-error.log*
 .env*
 !.env.example
 
+# claude code — personal local settings (권한 허용목록 등; 공유하지 않음)
+.claude/settings.local.json
+
+# /e2e-upload 슬래시 명령이 쓰는 임시 업로드 샘플
+/.tmp-e2e/
+
 # vercel
 .vercel
 

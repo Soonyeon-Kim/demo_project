@@ -15,13 +15,14 @@ npm run dev          # dev server at http://localhost:3000
 npm run build        # production build
 npm run lint         # eslint (flat config: eslint.config.mjs)
 npm test             # vitest run (one-shot, non-watch)
+npm run coverage     # vitest run --coverage (v8 provider; report in ./coverage, gitignored)
 
 npx vitest run lib/__tests__/stats.test.ts   # single test file
 npx vitest run -t "카카오톡"                  # single test by name pattern
 npx vitest                                    # watch mode
 ```
 
-Runtime config lives in `.env` (gitignored; see `.env.example`): `OPENAI_API_KEY` and optional `OPENAI_MODEL` (defaults to `gpt-4o-mini`). Restart `npm run dev` after editing `.env`.
+Runtime config lives in `.env` (gitignored; see `.env.example`): `OPENAI_API_KEY` and optional `OPENAI_MODEL` (defaults to `gpt-4o-mini`). Set `ANALYZE_MOCK=1` to return a deterministic mock analysis with no OpenAI call (key-less local/UI checks; see `app/api/CLAUDE.md`). Restart `npm run dev` after editing `.env`.
 
 ## Architecture
 
@@ -33,6 +34,20 @@ The high-level architecture — the deterministic-stats vs. LLM-analysis pipelin
 
 - **Path alias `@/*` maps to the repo root.** It's registered in both `tsconfig.json` and `vitest.config.ts` — update both if it ever changes, or tests will fail to resolve imports.
 - Tests live in `__tests__/` next to the code they cover.
+
+## TDD Guard — write the test first
+
+A `PreToolUse[Edit|Write]` hook (`.claude/hooks/tdd-guard.sh`, wired in `.claude/settings.json`) **blocks writing a source file before its test exists**, so write the test first or the Write/Edit is denied. It only guards real logic files (`.ts/.tsx/.js/.jsx`) and looks for a matching test at: a co-located `<name>.test.ts`/`.spec.ts`, `__tests__/<name>.test.ts` (same or parent dir), or `src/__tests__/<name>.test.ts`.
+
+**Exempt (no test required):** test/spec files themselves; `*.json`, `*.css`, `*.md`, `*.config.*`, `next.config*`, `tsconfig*`, `*.env*`; `types/` and `*/types.ts`; Next.js framework files (`layout`, `page`, `loading`, `error`, `not-found`, `globals.css`); and anything under `components/` (presentation layer — keep logic in `lib/` where TDD is enforced).
+
+## Windows shell notes
+
+Dev/CI here is Windows. When scripting in the Bash tool (Git Bash):
+
+- **Use `python`, not `python3`** — `python3` is the Windows Store stub and exits 49 without running.
+- **Non-ASCII output** (Korean, `—`) crashes the default cp949 console with `UnicodeEncodeError`. Set `PYTHONUTF8=1` (or `PYTHONIOENCODING=utf-8`) for any script that prints it.
+- **Building JSON that contains Windows paths**: don't hand-escape backslashes with `sed`/inline strings (it breaks). Pass the path through a shell variable into `node`/`jq --arg`, or use a heredoc. `jq` may not be installed — a `node -e` fallback is the safe default (see `.claude/hooks/tdd-guard.sh` for the pattern).
 
 ## Next.js 16 — read the local docs
 

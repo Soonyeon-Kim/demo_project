@@ -56,4 +56,32 @@ describe("POST /api/analyze (입력 검증)", () => {
       process.env.OPENAI_API_KEY = original;
     }
   });
+
+  it("ANALYZE_MOCK=1이면 키 없이도 analysis가 채워져 반환된다", async () => {
+    const originalKey = process.env.OPENAI_API_KEY;
+    const originalMock = process.env.ANALYZE_MOCK;
+    process.env.OPENAI_API_KEY = "";
+    process.env.ANALYZE_MOCK = "1";
+    try {
+      const txt = [
+        "--------------- 2026년 5월 24일 일요일 ---------------",
+        "[차라] [오전 3:03] 자료 공유 가능할까요?",
+        "[부경대] [오후 12:45] 안녕하세요",
+      ].join("\n");
+      const fd = new FormData();
+      fd.append("file", new File([txt], "KakaoTalk.txt", { type: "text/plain" }));
+
+      const res = await POST(postReq(fd));
+
+      expect(res.status).toBe(200);
+      const data = await res.json();
+      expect(data.analysis).not.toBeNull();
+      expect(typeof data.analysis.summary).toBe("string");
+      expect(Array.isArray(data.analysis.topics)).toBe(true);
+      expect(Array.isArray(data.analysis.actionItems)).toBe(true);
+    } finally {
+      process.env.OPENAI_API_KEY = originalKey;
+      process.env.ANALYZE_MOCK = originalMock;
+    }
+  });
 });

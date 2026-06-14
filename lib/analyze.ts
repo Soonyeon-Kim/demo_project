@@ -88,9 +88,59 @@ export function buildTranscript(messages: Message[]): {
   return { text, truncated, considered: slice.length };
 }
 
+/**
+ * 키·네트워크 없이 점검하기 위한 결정론적 mock 분석.
+ * 입력 메시지에서 파생(메시지 수·참여자·최다 발신자)하며 summary에 mock 마커를 단다.
+ * ANALYZE_MOCK=1일 때 analyzeChat이 OpenAI 대신 이걸 반환한다.
+ */
+export function buildMockAnalysis(messages: Message[]): Analysis {
+  const human = messages.filter((m) => !m.isSystem);
+  const counts = new Map<string, number>();
+  for (const m of human) counts.set(m.sender, (counts.get(m.sender) ?? 0) + 1);
+  const ranked = [...counts.entries()].sort((a, b) => b[1] - a[1]);
+  const topSender = ranked[0]?.[0] ?? "(없음)";
+  const topCount = ranked[0]?.[1] ?? 0;
+  const participants = counts.size;
+  const total = human.length;
+
+  return {
+    summary:
+      `⚠️ 모의(mock) 분석 결과입니다 — 실제 LLM 호출 없이 생성되었습니다. ` +
+      `분석 대상 메시지 ${total}개, 참여자 ${participants}명. ` +
+      `가장 활발한 참여자는 '${topSender}'(${topCount}건)입니다. ` +
+      `OPENAI_API_KEY 없이 /api/analyze 파이프라인과 화면을 점검하기 위한 고정 출력입니다.`,
+    topics: [
+      { title: "가장 활발한 참여자", detail: `${topSender} — ${topCount}건으로 대화를 주도했습니다. (mock)` },
+      { title: "메시지 분량", detail: `총 ${total}개 메시지, 참여자 ${participants}명 규모의 대화입니다. (mock)` },
+    ],
+    actionItems: [
+      {
+        task: "실제 분석을 보려면 OPENAI_API_KEY를 설정하세요.",
+        priority: "high",
+        context: "현재 ANALYZE_MOCK=1 모의 모드라 LLM 분석이 비활성화되어 있습니다.",
+      },
+      {
+        task: `'${topSender}'의 기여를 살펴보세요.`,
+        priority: "medium",
+        context: "가장 메시지가 많은 참여자입니다. (mock 데모용 항목)",
+      },
+      {
+        task: "요약·토픽·액션아이템·우선순위 뱃지가 정상 렌더되는지 확인하세요.",
+        priority: "low",
+        context: "화면 표시를 점검하는 mock 항목입니다.",
+      },
+    ],
+  };
+}
+
 /** OpenAI를 호출해 요약·토픽·액션아이템 생성. 키가 없거나 실패하면 error로 안내 */
 export async function analyzeChat(messages: Message[]): Promise<AnalyzeOutcome> {
   const { text, truncated, considered } = buildTranscript(messages);
+
+  // 키/네트워크 없이 파이프라인·UI 점검용. 키 체크보다 먼저 — 플래그가 우선한다.
+  if (process.env.ANALYZE_MOCK === "1") {
+    return { analysis: buildMockAnalysis(messages), truncated, considered };
+  }
 
   if (!process.env.OPENAI_API_KEY) {
     return {
