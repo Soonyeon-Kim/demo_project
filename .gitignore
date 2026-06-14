@@ -40,6 +40,9 @@ yarn-error.log*
 # /e2e-upload 슬래시 명령이 쓰는 임시 업로드 샘플
 /.tmp-e2e/
 
+# superpowers 브레인스토밍 비주얼 컴패니언 산출물
+/.superpowers/
+
 # vercel
 .vercel
 
